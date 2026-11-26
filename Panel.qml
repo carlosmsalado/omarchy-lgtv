@@ -5,6 +5,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
+import "Model.js" as Model
 
 Panel {
   id: root
@@ -14,8 +15,9 @@ Panel {
 
   readonly property string helperPath: Qt.resolvedUrl("lgtv-helper.sh").toString().replace(/^file:\/\//, "")
   readonly property int refreshIntervalSec: Math.max(5, Math.min(300, Number(setting("refreshIntervalSec", 25)) || 25))
-  readonly property string hyprmonProfileOn: safeText(setting("hyprmonProfileOn", "3 pantallas"), 40)
-  readonly property string hyprmonProfileOff: safeText(setting("hyprmonProfileOff", "2 pantallas"), 40)
+  readonly property string audioSinkMatch: Model.safeText(setting("audioSinkMatch", "LG TV"), 48)
+  readonly property string hyprmonProfileOn: Model.safeText(setting("hyprmonProfileOn", "3 pantallas"), 40)
+  readonly property string hyprmonProfileOff: Model.safeText(setting("hyprmonProfileOff", "2 pantallas"), 40)
 
   property bool configured: true
   property bool online: false
@@ -41,6 +43,8 @@ Panel {
   property string errorMessage: ""
   property bool remoteExpanded: false
   property real lastWheelMs: 0
+  property string setupIp: ""
+  property string setupPcInput: ""
 
   readonly property color foreground: bar ? bar.foreground : Commons.Color.foreground
   readonly property color accent: Commons.Color.accent
@@ -61,11 +65,8 @@ Panel {
     directory: Qt.resolvedUrl("i18n")
   }
 
-  function safeText(raw, maxLen) {
-    var s = String(raw === undefined || raw === null ? "" : raw)
-    s = s.replace(/[<>]/g, "").replace(/\s+/g, " ").trim()
-    var limit = maxLen || 48
-    return s.length > limit ? s.slice(0, limit - 1) + "…" : s
+  function helperCmd(args) {
+    return [helperPath, "--sink-match", audioSinkMatch].concat(args)
   }
 
   function statusLabel() {
@@ -78,20 +79,9 @@ Panel {
     return strings.t("status.active")
   }
 
-  function activeSourceLabel() {
-    if (!online || !foregroundAppId) return ""
-    for (var i = 0; i < inputs.length; i++) {
-      if (inputs[i].appId === foregroundAppId) return safeText(inputs[i].label, 28)
-    }
-    for (var j = 0; j < apps.length; j++) {
-      if (apps[j].id === foregroundAppId) return safeText(apps[j].title, 28)
-    }
-    return ""
-  }
-
   function headerSubtitle() {
     var base = statusLabel()
-    var src = activeSourceLabel()
+    var src = Model.activeSourceLabel(online, foregroundAppId, inputs, apps)
     return src !== "" && !busy ? base + " · " + src : base
   }
 
@@ -116,86 +106,63 @@ Panel {
         online = true
       }
       if (data.hyprmonAvailable !== undefined) hyprmonAvailable = Boolean(data.hyprmonAvailable)
-      if (data.activeProfile !== undefined) activeProfile = safeText(data.activeProfile, 32)
+      if (data.activeProfile !== undefined) activeProfile = Model.safeText(data.activeProfile, 32)
       if (data.pcAudioOnTv !== undefined) pcAudioOnTv = Boolean(data.pcAudioOnTv)
       if (data.pcAudioAvailable !== undefined) pcAudioAvailable = Boolean(data.pcAudioAvailable)
-      if (data.pcAudioSinkName !== undefined) pcAudioSinkName = safeText(data.pcAudioSinkName, 48)
+      if (data.pcAudioSinkName !== undefined) pcAudioSinkName = Model.safeText(data.pcAudioSinkName, 48)
     } catch (e) {}
   }
 
   function parseState(raw) {
-    var txt = String(raw || "").trim()
-    if (txt === "") return
     try {
-      var data = JSON.parse(txt)
-      if (data.configured !== undefined) configured = Boolean(data.configured)
-      online = Boolean(data.online)
-      reachable = Boolean(data.reachable)
-      pinMismatch = Boolean(data.pinMismatch)
-      pairingRequired = Boolean(data.pairingRequired)
-      powerState = safeText(data.powerState || "Standby", 32)
-      screenOff = Boolean(data.screenOff)
-      volume = Math.max(0, Math.min(100, Math.round(Number(data.volume) || 0)))
-      muted = Boolean(data.muted)
-      soundOutput = safeText(data.soundOutput || "", 32)
-      foregroundAppId = safeText(data.foregroundAppId || "", 64)
-      pcInputId = safeText(data.pcInputId || "", 24)
-      if (data.hyprmonAvailable !== undefined) hyprmonAvailable = Boolean(data.hyprmonAvailable)
-      activeProfile = safeText(data.activeProfile || "", 32)
-      pcAudioOnTv = Boolean(data.pcAudioOnTv)
-      pcAudioAvailable = Boolean(data.pcAudioAvailable)
-      pcAudioSinkName = safeText(data.pcAudioSinkName || "", 48)
-      if (Array.isArray(data.inputs)) {
-        var cleanInputs = []
-        for (var i = 0; i < Math.min(data.inputs.length, 12); i++) {
-          var item = data.inputs[i]
-          if (!item || !item.id) continue
-          cleanInputs.push({
-            id: safeText(item.id, 24),
-            label: safeText(item.label || item.id, 32),
-            appId: safeText(item.appId || "", 64),
-            connected: Boolean(item.connected)
-          })
-        }
-        inputs = cleanInputs
-      }
+      var parsed = Model.parseStatePayload(raw)
+      if (!parsed) return
+      configured = parsed.configured
+      online = parsed.online
+      reachable = parsed.reachable
+      pinMismatch = parsed.pinMismatch
+      pairingRequired = parsed.pairingRequired
+      powerState = parsed.powerState
+      screenOff = parsed.screenOff
+      volume = parsed.volume
+      muted = parsed.muted
+      soundOutput = parsed.soundOutput
+      foregroundAppId = parsed.foregroundAppId
+      pcInputId = parsed.pcInputId
+      hyprmonAvailable = parsed.hyprmonAvailable
+      activeProfile = parsed.activeProfile
+      pcAudioOnTv = parsed.pcAudioOnTv
+      pcAudioAvailable = parsed.pcAudioAvailable
+      pcAudioSinkName = parsed.pcAudioSinkName
+      inputs = parsed.inputs
       if (root.opened && online && !appsLoaded) refreshApps(false)
     } catch (e) {}
   }
 
   function parseApps(raw) {
-    var txt = String(raw || "").trim()
-    if (txt === "") return
     try {
-      var list = JSON.parse(txt)
-      if (!Array.isArray(list)) return
-      var clean = []
-      for (var i = 0; i < Math.min(list.length, 24); i++) {
-        var item = list[i]
-        if (!item || !item.id || !item.title) continue
-        clean.push({
-          id: safeText(item.id, 64),
-          title: safeText(item.title, 32)
-        })
-      }
-      apps = clean
+      var list = Model.parseAppsPayload(raw)
+      if (!list) return
+      apps = list
       appsLoaded = true
     } catch (e) {}
   }
 
   function refreshProbe() {
     if (probeProc.running || stateProc.running || root.opened) return
+    probeProc.command = helperCmd(["probe"])
     probeProc.running = true
   }
 
   function refreshState() {
     if (stateProc.running) return
+    stateProc.command = helperCmd(["state"])
     stateProc.running = true
   }
 
   function refreshApps(force) {
     if (appsProc.running || !online) return
-    appsProc.command = force ? [helperPath, "apps", "--force"] : [helperPath, "apps"]
+    appsProc.command = helperCmd(force ? ["apps", "--force"] : ["apps"])
     appsProc.running = true
   }
 
@@ -203,13 +170,29 @@ Panel {
     if (actionProc.running) return
     errorMessage = ""
     if (showBusy !== false) busy = true
-    actionProc.command = [helperPath].concat(args)
+    actionProc.command = helperCmd(args)
     actionProc.running = true
+  }
+
+  function runSetup() {
+    var ip = String(setupIp || "").trim()
+    var pcIn = String(setupPcInput || "").trim()
+    if (!Model.isValidIpv4(ip)) {
+      errorMessage = strings.t("setup.invalidIp")
+      return
+    }
+    if (!Model.isValidHdmiInput(pcIn)) {
+      errorMessage = strings.t("setup.invalidInput")
+      return
+    }
+    var args = ["tv", "setup", ip]
+    if (pcIn !== "") args = args.concat(["--pc-input", pcIn])
+    runAction(args, true)
   }
 
   function runQuickVolume(delta) {
     if (volProc.running || !online) return
-    volProc.command = [helperPath, "tv", "volume", delta > 0 ? "up" : "down"]
+    volProc.command = helperCmd(["tv", "volume", delta > 0 ? "up" : "down"])
     volProc.running = true
   }
 
@@ -268,12 +251,6 @@ Panel {
     runAction(["pc-audio-toggle"], false)
   }
 
-  function isProfileActive(target) {
-    var a = activeProfile.toLowerCase().replace(/[\s_-]+/g, "")
-    var b = String(target).toLowerCase().replace(/[\s_-]+/g, "")
-    return a !== "" && a === b
-  }
-
   ShellIpc {
     target: "carlosmsalado.lgtv"
 
@@ -303,7 +280,6 @@ Panel {
 
   Process {
     id: probeProc
-    command: [root.helperPath, "probe"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.parseProbe(text)
@@ -312,7 +288,6 @@ Panel {
 
   Process {
     id: stateProc
-    command: [root.helperPath, "state"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.parseState(text)
@@ -321,7 +296,6 @@ Panel {
 
   Process {
     id: appsProc
-    command: [root.helperPath, "apps"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.parseApps(text)
@@ -333,7 +307,7 @@ Panel {
     stderr: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
-        var msg = root.safeText(text, 96)
+        var msg = Model.safeText(text, 96)
         if (msg !== "") root.errorMessage = msg
       }
     }
@@ -370,7 +344,7 @@ Panel {
     bar: root.bar
     text: root.tvIcon()
     foreground: root.barIconColor
-    tooltipText: root.safeText(strings.t("tooltip.bar").arg(root.headerSubtitle()), 120)
+    tooltipText: Model.safeText(strings.t("tooltip.bar").arg(root.headerSubtitle()), 120)
     onPressed: function(b) {
       if (b === Qt.MiddleButton) root.toggleScreen()
       else if (b === Qt.RightButton) root.refreshState()
@@ -471,16 +445,47 @@ Panel {
             }
           }
 
-          // ---------- Setup Hint (when unconfigured) ----------
-          Text {
+          // ---------- In-Panel Setup Wizard (when unconfigured) ----------
+          Column {
             visible: !root.configured
             width: parent.width
-            textFormat: Text.PlainText
-            text: strings.t("setup.hint")
-            color: root.dim
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-            wrapMode: Text.WordWrap
+            spacing: Style.space(8)
+
+            PanelSectionHeader {
+              text: strings.t("setup.title")
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+            }
+
+            TextField {
+              width: parent.width
+              foreground: root.foreground
+              placeholderText: strings.t("setup.ipPlaceholder")
+              text: root.setupIp
+              onTextChanged: root.setupIp = text
+              onAccepted: root.runSetup()
+            }
+
+            TextField {
+              width: parent.width
+              foreground: root.foreground
+              placeholderText: strings.t("setup.inputPlaceholder")
+              text: root.setupPcInput
+              onTextChanged: root.setupPcInput = text
+              onAccepted: root.runSetup()
+            }
+
+            Button {
+              width: parent.width
+              bordered: true
+              selected: true
+              enabled: !root.busy
+              iconText: "\udb80\udf3e"
+              text: strings.t("setup.button")
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+              onClicked: root.runSetup()
+            }
           }
 
           // ---------- Pairing Required Banner ----------
@@ -557,7 +562,7 @@ Panel {
             Button {
               Layout.fillWidth: true
               bordered: true
-              selected: root.isProfileActive(root.hyprmonProfileOn)
+              selected: Model.isProfileActive(root.activeProfile, root.hyprmonProfileOn)
               enabled: !root.busy
               iconText: "\udb80\udf79"
               text: root.hyprmonProfileOn
@@ -569,7 +574,7 @@ Panel {
             Button {
               Layout.fillWidth: true
               bordered: true
-              selected: root.isProfileActive(root.hyprmonProfileOff)
+              selected: Model.isProfileActive(root.activeProfile, root.hyprmonProfileOff)
               enabled: !root.busy
               iconText: "\udb80\udf7a"
               text: root.hyprmonProfileOff
@@ -689,7 +694,7 @@ Panel {
                 selected: root.foregroundAppId === modelData.appId
                 enabled: !root.busy
                 iconText: modelData.id === root.pcInputId ? "\udb80\udf79" : "\udb80\ude2c"
-                text: root.safeText(modelData.label, 22)
+                text: Model.safeText(modelData.label, 22)
                 foreground: root.foreground
                 fontFamily: root.fontFamily
                 leftAlign: true
@@ -722,7 +727,7 @@ Panel {
                 bordered: true
                 selected: root.foregroundAppId === modelData.id
                 enabled: !root.busy
-                text: root.safeText(modelData.title, 22)
+                text: Model.safeText(modelData.title, 22)
                 fontSize: Style.font.caption
                 foreground: root.foreground
                 fontFamily: root.fontFamily

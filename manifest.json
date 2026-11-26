@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "carlosmsalado.lgtv",
   "name": "LG TV Control",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "carlosmsalado",
   "license": "MIT",
   "description": "Control an LG webOS TV from the Omarchy bar: power, OLED screen-off, volume, audio outputs, PipeWire HDMI audio toggle, HDMI inputs, webOS apps, mini remote, and optional hyprmoncfg monitor profiles.",
@@ -20,6 +20,7 @@
     "defaultSection": "right",
     "defaults": {
       "refreshIntervalSec": 25,
+      "audioSinkMatch": "LG TV",
       "hyprmonProfileOn": "3 pantallas",
       "hyprmonProfileOff": "2 pantallas"
     },
@@ -32,6 +33,12 @@
         "max": 300,
         "step": 5,
         "defaultValue": 25
+      },
+      {
+        "key": "audioSinkMatch",
+        "type": "string",
+        "label": "PipeWire TV sink substring",
+        "defaultValue": "LG TV"
       },
       {
         "key": "hyprmonProfileOn",

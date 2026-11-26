@@ -12,6 +12,13 @@ PROBE_CACHE="$RUNTIME_DIR/carlosmsalado-lgtv-probe.json"
 APPS_CACHE="$RUNTIME_DIR/carlosmsalado-lgtv-apps.json"
 
 NODE_BIN="$(command -v node || echo /usr/bin/node)"
+SINK_MATCH="${OMARCHY_LGTV_SINK_MATCH:-LG TV}"
+
+while [ "${1:-}" = "--sink-match" ]; do
+  shift
+  SINK_MATCH="${1:-LG TV}"
+  shift || true
+done
 
 run_tv() {
   flock -w 8 "$LOCK_FILE" env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_NO_WARNINGS=1 "$NODE_BIN" "$TV_CONTROL" "$@"
@@ -23,7 +30,15 @@ get_sinks_block() {
 }
 
 get_lg_sink_id() {
-  get_sinks_block | awk '/\[LG TV\]/ { gsub(/[^0-9]/, "", $2); if ($2 != "") { print $2; exit } }'
+  get_sinks_block | awk -v pat="$SINK_MATCH" '
+    BEGIN { p = tolower(pat) }
+    p != "" && index(tolower($0), p) > 0 {
+      line = $0
+      sub(/^[^0-9]*/, "", line)
+      sub(/\..*$/, "", line)
+      if (line != "") { print line; exit }
+    }
+  '
 }
 
 get_default_sink_info() {
@@ -83,7 +98,7 @@ toggle_pc_audio() {
   local lg_id cur_line cur_id prev_id fallback_id
   lg_id="$(get_lg_sink_id || true)"
   if [ -z "$lg_id" ]; then
-    echo "LG TV PipeWire sink not found" >&2
+    echo "TV PipeWire sink not found (match: $SINK_MATCH)" >&2
     exit 1
   fi
 
@@ -99,7 +114,7 @@ toggle_pc_audio() {
       wpctl set-default "$prev_id"
       exit 0
     fi
-    fallback_id="$(get_sinks_block | awk -v lg="$lg_id" '/[0-9]+\./ && !/\[LG TV\]/ {
+    fallback_id="$(get_sinks_block | awk -v lg="$lg_id" '/[0-9]+\./ {
       line = $0
       sub(/^[^0-9]*/, "", line)
       sub(/\..*$/, "", line)
@@ -169,7 +184,7 @@ case "$cmd" in
     toggle_pc_audio
     ;;
   *)
-    echo "Usage: lgtv-helper.sh {probe|state|apps|tv <args...>|profile <name>|pc-audio-toggle}" >&2
+    echo "Usage: lgtv-helper.sh [--sink-match <str>] {probe|state|apps|tv <args...>|profile <name>|pc-audio-toggle}" >&2
     exit 1
     ;;
 esac

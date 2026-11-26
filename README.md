@@ -2,8 +2,11 @@
 
 Native [Omarchy](https://omarchy.org/) shell bar plugin to control an **LG webOS TV** directly from your Linux desktop — zero external Node/Python dependencies, pinned TLS certificate verification, Wake-on-LAN, OLED screen-off, PipeWire HDMI audio switching, and optional `hyprmoncfg` monitor profile integration.
 
+![LG TV Control Panel](assets/panel.png)
+
 ## Features
 
+- **In-Panel Setup Wizard**: enter your TV's IPv4 address (and optional PC HDMI input) directly inside the panel to pin the TLS certificate, detect MAC/broadcast for Wake-on-LAN, and pair — no terminal required.
 - **Power & OLED Screen-Off**:
   - Turn On via UDP Wake-on-LAN (`wake-only` or `wake` with auto PC HDMI input switch).
   - Turn Off (standby) over local webOS SSAP.
@@ -11,7 +14,7 @@ Native [Omarchy](https://omarchy.org/) shell bar plugin to control an **LG webOS
 - **TV Volume & Audio**:
   - Live volume slider (0–100) + Mute toggle + scroll wheel over the bar icon.
   - Quick TV sound output selector (`TV`, `HDMI ARC`, `Bluetooth`, `Optical`).
-  - One-click **PipeWire PC Audio ↔ TV HDMI** sink toggle (automatically detects `[LG TV]` sink and restores your previous desktop sink).
+  - One-click **PipeWire PC Audio ↔ TV HDMI** sink toggle with configurable substring matching (`audioSinkMatch`, default `LG TV`) and automatic restoration of your previous desktop sink.
 - **HDMI Inputs & webOS Apps**:
   - Lists and switches external HDMI inputs with active highlight.
   - Lists installed webOS apps (YouTube, Jellyfin, Plex, Netflix, etc.) and launches them in one click.
@@ -19,11 +22,11 @@ Native [Omarchy](https://omarchy.org/) shell bar plugin to control an **LG webOS
   - Rewind, Play, Pause, Stop, Fast Forward.
   - Compact D-Pad (`Up`, `Down`, `Left`, `Right`, `OK`, `Back`, `Home`, `Exit`) via webOS pointer socket.
 - **Optional `hyprmoncfg` Integration**:
-  - Automatically detected if `~/.config/hyprmoncfg/apply-profile.sh` is present; hidden otherwise.
+  - Automatically detected if `~/.config/hyprmoncfg/apply-profile.sh` is present; hidden otherwise. Profile names are configurable in `shell.json`.
 - **Silent & Safe by Design**:
   - Background bar polling uses a **TLS-only reachability probe** (cached 10s, serialized with `flock`) — zero SSAP registrations in the background, zero pairing popups on the TV.
   - Refuses automatic pairing prompts during normal commands; explicit pairing button included in the panel.
-  - Local LAN only, pinned SHA-256 TLS certificate, `Text.PlainText` throughout QML, live `en` / `es` i18n.
+  - Local LAN only, pinned SHA-256 TLS certificate, `Text.PlainText` + markup neutralization throughout QML, live `en` / `es` i18n.
 
 ## Requirements
 
@@ -41,19 +44,17 @@ Install directly from GitHub using Omarchy's plugin manager:
 omarchy plugin add https://github.com/carlosmsalado/omarchy-lgtv --enable
 ```
 
-## First-Time TV Setup (TLS Pin + Pairing)
+## First-Time TV Setup
 
-Turn your LG TV on and run once from a terminal:
+1. Turn your LG TV on and click the **TV icon** in the Omarchy bar.
+2. Enter your TV's IP address (and optional PC HDMI input, e.g. `HDMI_4`) and click **Pin TLS & Pair TV**.
+3. Accept the single pairing prompt on your TV screen.
+
+CLI alternative:
 
 ```bash
 node ~/.config/omarchy/plugins/carlosmsalado.lgtv/bin/control.mjs setup <TV_IP> --pc-input HDMI_4
 ```
-
-This will:
-1. Connect to `wss://<TV_IP>:3001` and pin the TV's SHA-256 TLS certificate.
-2. Detect the TV's MAC address and LAN broadcast for Wake-on-LAN.
-3. Save `~/.config/omarchy-lgtv/device.json` (`0600`).
-4. Trigger a single pairing prompt on the TV — accept it to store `~/.config/omarchy-lgtv/client-key.json` (`0600`).
 
 > Config directory lookup order: `$OMARCHY_LGTV_CONFIG_DIR` → `~/.config/omarchy-lgtv/` → `~/.config/optimus/lg-tv/`.
 
@@ -75,6 +76,13 @@ omarchy-shell carlosmsalado.lgtv screenToggle
 omarchy-shell carlosmsalado.lgtv volumeUp
 omarchy-shell carlosmsalado.lgtv volumeDown
 omarchy-shell carlosmsalado.lgtv muteToggle
+```
+
+## Development & Tests
+
+```bash
+node --test tests/run.mjs
+omarchy plugin validate .
 ```
 
 ## License
