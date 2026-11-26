@@ -2,7 +2,9 @@
 
 Native [Omarchy](https://omarchy.org/) shell bar plugin to control an **LG webOS TV** directly from your Linux desktop — zero external Node/Python dependencies, pinned TLS certificate verification, Wake-on-LAN, OLED screen-off, PipeWire HDMI audio switching, and optional `hyprmoncfg` monitor profile integration.
 
-![LG TV Control Panel](assets/panel.png)
+![LG TV Control Panel](preview.png)
+
+> Note: Developed with AI assistance.
 
 ## Features
 
@@ -42,6 +44,20 @@ Install directly from GitHub using Omarchy's plugin manager:
 
 ```bash
 omarchy plugin add https://github.com/carlosmsalado/omarchy-lgtv --enable
+```
+
+## Removal
+
+Remove the plugin from Omarchy:
+
+```bash
+omarchy plugin remove carlosmsalado.lgtv
+```
+
+Optionally remove your local TV credentials and device configuration:
+
+```bash
+rm -rf ~/.config/omarchy-lgtv ~/.cache/carlosmsalado-lgtv-prev-sink
 ```
 
 ## First-Time TV Setup
