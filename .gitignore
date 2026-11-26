@@ -1,0 +1,6 @@
+device.json
+client-key.json
+client-key.json.bak.*
+*.bak.*
+manual-profile-switch
+.DS_Store

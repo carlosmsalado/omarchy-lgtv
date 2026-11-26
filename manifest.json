@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "carlosmsalado.lgtv",
+  "name": "LG TV Control",
+  "version": "1.0.0",
+  "author": "carlosmsalado",
+  "license": "MIT",
+  "description": "Control an LG webOS TV from the Omarchy bar: power, OLED screen-off, volume, audio outputs, PipeWire HDMI audio toggle, HDMI inputs, webOS apps, mini remote, and optional hyprmoncfg monitor profiles.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "LG TV",
+    "description": "Control LG webOS TV power, OLED screen-off, volume, inputs, apps, and remote.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "refreshIntervalSec": 25,
+      "hyprmonProfileOn": "3 pantallas",
+      "hyprmonProfileOff": "2 pantallas"
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Background probe interval (seconds)",
+        "min": 5,
+        "max": 300,
+        "step": 5,
+        "defaultValue": 25
+      },
+      {
+        "key": "hyprmonProfileOn",
+        "type": "string",
+        "label": "hyprmoncfg profile (TV On)",
+        "defaultValue": "3 pantallas"
+      },
+      {
+        "key": "hyprmonProfileOff",
+        "type": "string",
+        "label": "hyprmoncfg profile (TV Off)",
+        "defaultValue": "2 pantallas"
+      }
+    ]
+  }
+}
