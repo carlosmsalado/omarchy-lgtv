@@ -1,4 +1,4 @@
-# omarchy-lgtv
+# Omarchy LG TV Control (`cms.lgtv`)
 
 Native [Omarchy](https://omarchy.org/) shell bar plugin to control an **LG webOS TV** directly from your Linux desktop — zero external Node/Python dependencies, pinned TLS certificate verification, Wake-on-LAN, OLED screen-off, PipeWire HDMI audio switching, and optional `hyprmoncfg` monitor profile integration.
 
@@ -51,13 +51,13 @@ omarchy plugin add https://github.com/carlosmsalado/omarchy-lgtv --enable
 Remove the plugin from Omarchy:
 
 ```bash
-omarchy plugin remove carlosmsalado.lgtv
+omarchy plugin remove cms.lgtv
 ```
 
 Optionally remove your local TV credentials and device configuration:
 
 ```bash
-rm -rf ~/.config/omarchy-lgtv ~/.cache/carlosmsalado-lgtv-prev-sink
+rm -rf ~/.config/omarchy-lgtv ~/.cache/cms-lgtv-prev-sink
 ```
 
 ## First-Time TV Setup
@@ -69,7 +69,7 @@ rm -rf ~/.config/omarchy-lgtv ~/.cache/carlosmsalado-lgtv-prev-sink
 CLI alternative:
 
 ```bash
-node ~/.config/omarchy/plugins/carlosmsalado.lgtv/bin/control.mjs setup <TV_IP> --pc-input HDMI_4
+node ~/.config/omarchy/plugins/cms.lgtv/bin/control.mjs setup <TV_IP> --pc-input HDMI_4
 ```
 
 > Config directory lookup order: `$OMARCHY_LGTV_CONFIG_DIR` → `~/.config/omarchy-lgtv/` → `~/.config/optimus/lg-tv/`.
@@ -83,15 +83,15 @@ node ~/.config/omarchy/plugins/carlosmsalado.lgtv/bin/control.mjs setup <TV_IP> 
 
 ## IPC & Hyprland Keybinds
 
-The plugin exposes `ShellIpc` on `carlosmsalado.lgtv`:
+The plugin exposes `ShellIpc` on `cms.lgtv`:
 
 ```bash
-omarchy-shell carlosmsalado.lgtv toggle
-omarchy-shell carlosmsalado.lgtv powerToggle
-omarchy-shell carlosmsalado.lgtv screenToggle
-omarchy-shell carlosmsalado.lgtv volumeUp
-omarchy-shell carlosmsalado.lgtv volumeDown
-omarchy-shell carlosmsalado.lgtv muteToggle
+omarchy-shell cms.lgtv toggle
+omarchy-shell cms.lgtv powerToggle
+omarchy-shell cms.lgtv screenToggle
+omarchy-shell cms.lgtv volumeUp
+omarchy-shell cms.lgtv volumeDown
+omarchy-shell cms.lgtv muteToggle
 ```
 
 ## Development & Tests

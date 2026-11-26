@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "carlosmsalado.lgtv",
-  "name": "LG TV Control",
+  "id": "cms.lgtv",
+  "name": "Omarchy LG TV Control",
   "version": "1.1.0",
   "author": "carlosmsalado",
   "license": "MIT",

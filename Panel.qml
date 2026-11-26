@@ -9,8 +9,8 @@ import "Model.js" as Model
 
 Panel {
   id: root
-  moduleName: "carlosmsalado.lgtv"
-  ipcTarget: "carlosmsalado.lgtv"
+  moduleName: "cms.lgtv"
+  ipcTarget: "cms.lgtv"
   manageIpc: false
 
   readonly property string helperPath: Qt.resolvedUrl("lgtv-helper.sh").toString().replace(/^file:\/\//, "")
@@ -252,7 +252,7 @@ Panel {
   }
 
   ShellIpc {
-    target: "carlosmsalado.lgtv"
+    target: "cms.lgtv"
 
     function open(): void { root.open() }
     function close(): void { root.close() }
